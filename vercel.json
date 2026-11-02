@@ -42,7 +42,7 @@
           "discord-slash.js"
         ]
       }
-    },
+    }
   ],
   "routes": [
     {
