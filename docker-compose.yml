@@ -1,0 +1,21 @@
+services:
+  plasmastatus:
+    build: .
+    container_name: plasmastatus
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+
+  mongo:
+    image: mongo:7
+    container_name: plasmastatus-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
