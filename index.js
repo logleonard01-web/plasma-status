@@ -423,8 +423,9 @@ const connectToMongoDB = async () => {
               maxPoolSize: 10,
               serverSelectionTimeoutMS: 5000,
               socketTimeoutMS: 45000,
-              // Keep the connection alive between serverless invocations
-              bufferCommands: false,
+              // bufferCommands must stay true (the default) on Vercel — with
+              // false, any query before the connection resolves throws immediately.
+              // Mongoose's built-in buffering queues operations safely instead.
             });
             console.log('[MONGO] Connected to MongoDB successfully');
         } else {

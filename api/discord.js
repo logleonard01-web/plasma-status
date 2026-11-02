@@ -34,7 +34,6 @@ async function ensureDb() {
   await mongoose.connect(uri, {
     maxPoolSize: 5,
     serverSelectionTimeoutMS: 5000,
-    bufferCommands: false,
   });
   dbReady = true;
 }
