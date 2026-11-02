@@ -20,6 +20,13 @@ const { applyEnv }     = require('../env-config');
 const settingsLoader   = require('../settings');
 const slash = require('../discord-slash');
 
+// Register Mongoose models so mongoose.model('Name') lookups work
+require('../models/serviceModel');
+require('../models/historyModel');
+require('../models/statusUpdateModel');
+require('../models/discordMessageModel');
+require('../models/settingsModel');
+
 // ---------------------------------------------------------------------------
 // Lazy DB connection (reused across warm invocations)
 // ---------------------------------------------------------------------------
