@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "_comment": "PlasmaStatus Vercel config",
   "builds": [
     {
       "src": "api/index.js",
