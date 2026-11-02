@@ -10,7 +10,7 @@
  *   REGISTER_SECRET     – Any random string you set; protects the endpoint
  *
  * Optional:
- *   DISCORD_GUILD_ID    – Guild ID for instant registration (global takes ~1hr)
+ *   DISCORD_GUILD_ID    – If set, registers to that guild (instant). Otherwise registers globally (up to 1hr).
  */
 
 'use strict';
@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
     return res.json({
       ok: true,
       registered: commands.map(c => `/${c.name}`),
-      note: GUILD_ID ? 'Guild commands are instant.' : 'Global commands take up to 1 hour to appear.',
+      note: GUILD_ID ? 'Guild commands registered — instant.' : 'Global commands registered — appear in all servers within ~1 hour.',
     });
   }
 
