@@ -33,12 +33,25 @@
           "discord-bot.js"
         ]
       }
+    },
+    {
+      "src": "api/register.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "discord-slash.js"
+        ]
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/discord",
       "dest": "/api/discord.js"
+    },
+    {
+      "src": "/api/register",
+      "dest": "/api/register.js"
     },
     {
       "src": "/(.*)",
