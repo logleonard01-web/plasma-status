@@ -1022,6 +1022,11 @@ function rescheduleDiscordUpdates() {
 async function startServices() {
   console.log("[STARTUP] Starting PlasmaStatus services...");
 
+  // Ensure MongoDB is connected before any model queries.
+  // connectToMongoDB() was called at module load (fire-and-forget), but on
+  // Vercel with bufferCommands:false the connection may not be ready yet.
+  await connectToMongoDB();
+
   // Load dashboard-managed settings before anything reads them.
   await settings.seedIfNeeded();
   config = settings.getConfig();
