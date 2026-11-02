@@ -25,7 +25,9 @@ module.exports = async (req, res) => {
       started = true;
     } catch (err) {
       console.error('[PlasmaStatus] Startup failed:', err);
-      return res.status(503).send('Service starting up, please retry in a moment.');
+      return res.status(503).send(
+        `Startup failed: ${err.message}\n\nCheck Vercel logs for details.`
+      );
     }
   }
   return app(req, res);
