@@ -77,8 +77,8 @@ function rawBodyBuffer(req) {
 // ---------------------------------------------------------------------------
 
 async function handleStatus(interaction, cfg) {
-  const Service      = mongoose.model('Service');
-  const StatusUpdate = mongoose.model('StatusUpdate');
+  const Service      = mongoose.model('service');
+  const StatusUpdate = mongoose.model('statusUpdate');
   const serviceArg   = interaction.data.options?.find(o => o.name === 'service')?.value;
 
   if (serviceArg) {
@@ -101,7 +101,7 @@ async function handleStatus(interaction, cfg) {
 }
 
 async function handleUptime(interaction, cfg) {
-  const Service = mongoose.model('Service');
+  const Service = mongoose.model('service');
   const days    = interaction.data.options?.find(o => o.name === 'days')?.value ?? 30;
   const services = await Service.find().lean();
   return slash.reply(slash.buildUptimeEmbed(services, days, cfg.PageSettings?.Name));
@@ -122,7 +122,7 @@ async function handleCheck(interaction, cfg, applicationId) {
       await triggerStatusUpdate();
       const dt = Date.now() - t0;
 
-      const Service = mongoose.model('Service');
+      const Service = mongoose.model('service');
       const services = await Service.find().lean();
       await slash.followUp(applicationId, token,
         slash.buildCheckEmbed(services, cfg.PageSettings?.Name, dt));
@@ -145,8 +145,8 @@ async function handleEmbedSetup(interaction, cfg, isStaff) {
   if (!channelId) return slash.reply('❌ Please specify a channel.', true);
 
   const Settings = mongoose.model('Settings');
-  const Service  = mongoose.model('Service');
-  const StatusUpdate = mongoose.model('StatusUpdate');
+  const Service  = mongoose.model('service');
+  const StatusUpdate = mongoose.model('statusUpdate');
 
   const [services, lastUpdate] = await Promise.all([
     Service.find().lean(),
@@ -234,7 +234,7 @@ async function handleEmbedRemove(interaction, cfg, isStaff) {
 async function handleIncidentCreate(interaction, cfg, isStaff) {
   if (!isStaff) return slash.reply('🔒 This command is restricted to staff.', true);
 
-  const StatusUpdate = mongoose.model('StatusUpdate');
+  const StatusUpdate = mongoose.model('statusUpdate');
   const message  = interaction.data.options[0].options?.find(o => o.name === 'message')?.value;
   const type     = interaction.data.options[0].options?.find(o => o.name === 'type')?.value || 'investigating';
 
@@ -255,7 +255,7 @@ async function handleIncidentCreate(interaction, cfg, isStaff) {
 async function handleIncidentResolve(interaction, cfg, isStaff) {
   if (!isStaff) return slash.reply('🔒 This command is restricted to staff.', true);
 
-  const StatusUpdate = mongoose.model('StatusUpdate');
+  const StatusUpdate = mongoose.model('statusUpdate');
   const latest = await StatusUpdate.findOne().sort({ createdAt: -1 });
   if (!latest) return slash.reply('No active incidents found.', true);
 
@@ -275,7 +275,7 @@ async function handleIncidentResolve(interaction, cfg, isStaff) {
 }
 
 async function handleIncidentList(interaction, cfg) {
-  const StatusUpdate = mongoose.model('StatusUpdate');
+  const StatusUpdate = mongoose.model('statusUpdate');
   const cutoff   = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const incidents = await StatusUpdate.find({ createdAt: { $gte: cutoff } })
     .sort({ createdAt: -1 })
