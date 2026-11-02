@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<%
+  const P = config.PageSettings || {};
+  const A = config.Announcement || {};
+  const BOT = config.DiscordBot || {};
+  const SC = config.StatusColors || {};
+  const PERF = config.Performance || {};
+  const EMBED = config.DiscordEmbed || {};
+  const WH = config.WebhookMessages || {};
+  const WHOn = WH.Online || {};
+  const WHOff = WH.Offline || {};
+  const EC = EMBED.Colors || {};
+  const EE = EMBED.Emojis || {};
+  const accent = P.ThemeColor || '#5e99ff';
+  const show = (v, def) => (v === undefined ? def : v) ? 'checked' : '';
+%>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Dashboard · <%= P.Name || 'PlasmaStatus' %></title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: <%= accent %>;
+      --bg: #0b0e14; --surface: #141925; --surface-2: #1b2130; --line: #222a3a;
+      --text: #e6e9ef; --text-2: #9aa4b8; --text-3: #6b7589;
+      --danger: #ef4444; --ok: #10b981; --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    a { color: inherit; }
+    .mono { font-family: 'Geist Mono', monospace; }
+
+    .topbar { position: sticky; top: 0; z-index: 20; background: rgba(11,14,20,.85);
+      backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+    .topbar-inner { max-width: 1040px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; text-decoration: none; }
+    .brand img { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; }
+    .brand .tag { font-size: 11px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent);
+      padding: 2px 7px; border-radius: 20px; letter-spacing: .04em; }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .user { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2); }
+    .user img { width: 28px; height: 28px; border-radius: 50%; }
+
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 80px; }
+    .page-title { font-size: 24px; font-weight: 800; }
+    .page-sub { color: var(--text-2); font-size: 14px; margin-top: 4px; }
+
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-top: 20px; overflow: hidden; }
+    .panel-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+    .panel-head i { color: var(--accent); }
+    .panel-title { font-weight: 700; font-size: 15px; }
+    .panel-desc { color: var(--text-3); font-size: 13px; margin-top: 2px; }
+    .panel-body { padding: 20px; }
+    .panel-foot { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; background: var(--surface-2); }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .hint { font-size: 12px; color: var(--text-3); }
+    input[type=text], input[type=number], input[type=url], select, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
+      border-radius: 9px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+    textarea { resize: vertical; min-height: 72px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    input[type=color] { width: 46px; height: 38px; padding: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }
+    .color-row { display: flex; align-items: center; gap: 10px; }
+
+    .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .toggle input { position: absolute; opacity: 0; }
+    .toggle .track { width: 42px; height: 24px; background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 20px; position: relative; transition: .15s; flex-shrink: 0; }
+    .toggle .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+      background: var(--text-3); border-radius: 50%; transition: .15s; }
+    .toggle input:checked + .track { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked + .track::after { transform: translateX(18px); background: #fff; }
+    .toggle span.lbl { font-size: 14px; color: var(--text); font-weight: 500; }
+
+    .btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line);
+      background: var(--surface-2); color: var(--text); padding: 9px 15px; border-radius: 9px;
+      font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; font-family: inherit; }
+    .btn:hover { border-color: var(--text-3); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-danger { color: var(--danger); }
+    .btn-danger:hover { background: rgba(239,68,68,.1); border-color: var(--danger); }
+    .btn-sm { padding: 6px 10px; font-size: 13px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); padding: 0 12px 10px; }
+    td { padding: 12px; border-top: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    .svc-name { font-weight: 600; }
+    .svc-url { color: var(--text-3); font-size: 12px; }
+    .pill { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--line); color: var(--text-2); }
+    .pill.maint { color: #f59e0b; border-color: #f59e0b; }
+    .empty { padding: 28px; text-align: center; color: var(--text-3); font-size: 14px; }
+    .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+    .modal { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal.open { display: flex; }
+    .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+    .modal-card { position: relative; width: 100%; max-width: 520px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius); max-height: 90vh; overflow-y: auto; }
+
+    .savebar { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(160%);
+      display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line);
+      border-radius: 12px; padding: 10px 12px 10px 20px; box-shadow: 0 12px 34px rgba(0,0,0,.45);
+      transition: transform .25s ease, opacity .25s; opacity: 0; visibility: hidden; z-index: 45; }
+    .savebar.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+    .savebar .msg { font-size: 14px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+    .savebar .msg i { color: #f59e0b; margin-right: 7px; }
+    @media (max-width: 640px) {
+      .savebar { left: 16px; right: 16px; transform: translateY(160%); justify-content: space-between; padding-left: 16px; }
+      .savebar.show { transform: translateY(0); }
+      .savebar .msg { white-space: normal; }
+    }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px);
+      background: var(--ok); color: #fff; padding: 12px 20px; border-radius: 10px; font-weight: 600;
+      font-size: 14px; transition: opacity .3s, transform .3s, visibility .3s; z-index: 60;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3); opacity: 0; visibility: hidden; pointer-events: none; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+    .err { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; }
+
+    @media (max-width: 720px) {
+      .grid, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .svc-url, .col-hide { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <img src="/logo.png" alt="" onerror="this.style.display='none'">
+        <span><%= P.Name || 'PlasmaStatus' %></span>
+        <span class="tag">STAFF</span>
+      </a>
+      <div class="top-actions">
+        <a class="btn btn-sm" href="/" target="_blank"><i class="fas fa-arrow-up-right-from-square"></i> View page</a>
+        <% if (user) { %>
+          <div class="user">
+            <% if (user.avatar) { %><img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=64" alt=""><% } %>
+            <span><%= user.username %></span>
+          </div>
+        <% } %>
+        <a class="btn btn-sm" href="/logout"><i class="fas fa-right-from-bracket"></i> Log out</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Everything here is saved to the database and applied live — no need to edit config.yml.</div>
+    </div>
+
+    <!-- SERVICES (managed via AJAX, outside the settings form) -->
+    <section class="panel">
+      <div class="panel-head">
+        <i class="fas fa-server"></i>
+        <div style="flex:1">
+          <div class="panel-title">Monitored services</div>
+          <div class="panel-desc">Add, edit or remove the services shown on your status page.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openServiceModal()"><i class="fas fa-plus"></i> Add service</button>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <% if (services && services.length) { %>
+          <table>
+            <thead><tr><th>Service</th><th class="col-hide">Type</th><th class="col-hide">Category</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <% services.forEach(s => { %>
+                <tr data-id="<%= s._id %>"
+                    data-name="<%= encodeURIComponent(s.name) %>"
+                    data-url="<%= encodeURIComponent(s.url) %>"
+                    data-type="<%= s.type %>"
+                    data-category="<%= encodeURIComponent(s.category || '') %>"
+                    data-port="<%= s.port || '' %>"
+                    data-webhookurl="<%= encodeURIComponent(s.webhookURL || '') %>"
+                    data-tooltip="<%= encodeURIComponent(s.tooltip || '') %>"
+                    data-maintenance="<%= s.maintenance ? '1' : '0' %>">
+                  <td>
+                    <div class="svc-name"><%= s.name %></div>
+                    <div class="svc-url mono"><%= s.url %><%= s.port ? ':' + s.port : '' %></div>
+                  </td>
+                  <td class="col-hide"><span class="pill"><%= s.type %></span></td>
+                  <td class="col-hide"><%= s.category || 'Uncategorized' %></td>
+                  <td><% if (s.maintenance) { %><span class="pill maint">maintenance</span><% } else { %><span class="pill"><%= s.currentStatus %></span><% } %></td>
+                  <td>
+                    <div class="row-actions">
+                      <button class="btn btn-sm" onclick="editService(this)"><i class="fas fa-pen"></i></button>
+                      <button class="btn btn-sm btn-danger" onclick="deleteService('<%= s._id %>', '<%= s.name.replace(/'/g, "\\'") %>')"><i class="fas fa-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="empty">No services yet. Click “Add service” to create one.</div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- SETTINGS FORM -->
+    <form id="settingsForm" action="/dashboard/settings" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-sliders"></i><div><div class="panel-title">General</div><div class="panel-desc">Page identity and how often services are checked.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field"><label>Page name</label><input type="text" name="page[Name]" value="<%= P.Name || '' %>"></div>
+          <div class="field"><label>Theme</label>
+            <select name="page[Theme]">
+              <option value="professional" <%= (P.Theme||'')==='professional' ? 'selected' : '' %>>Professional (light / business)</option>
+              <option value="simple" <%= (P.Theme||'')==='simple' ? 'selected' : '' %>>Simple (sleek dark)</option>
+            </select>
+          </div>
+          <div class="field full"><label>Description</label><textarea name="page[Description]"><%= P.Description || '' %></textarea></div>
+          <div class="field"><label>Theme colour</label>
+            <div class="color-row">
+              <input type="color" name="page[ThemeColor]" value="<%= P.ThemeColor || '#5e99ff' %>" oninput="this.nextElementSibling.value=this.value">
+              <input type="text" class="mono" value="<%= P.ThemeColor || '#5e99ff' %>" oninput="this.previousElementSibling.value=this.value" style="max-width:120px">
+            </div>
+          </div>
+          <div class="field"><label>Check interval</label><input type="text" name="page[updateInterval]" value="<%= P.updateInterval || '1m' %>" placeholder="1m"><span class="hint">e.g. 30s, 1m, 5m</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-image"></i><div><div class="panel-title">Branding</div><div class="panel-desc">Logo and favicon shown on the status page.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field"><label>Logo (PNG, JPG or WEBP)</label><input type="file" name="logo" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"><span class="hint">Replaces the site logo</span></div>
+          <div class="field"><label>Favicon (ICO)</label><input type="file" name="favicon" accept=".ico,image/x-icon"><span class="hint">Replaces /favicon.ico</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-bullhorn"></i><div><div class="panel-title">Announcement banner</div><div class="panel-desc">Optional banner shown at the top of the page.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field full"><label class="toggle"><input type="checkbox" name="announcement[Enabled]" value="true" <%= A.Enabled ? 'checked' : '' %>><span class="track"></span><span class="lbl">Show the announcement banner</span></label></div>
+          <div class="field full"><label>Message</label><textarea name="announcement[Message]"><%= A.Message || '' %></textarea></div>
+          <div class="field"><label>Type</label>
+            <select name="announcement[Type]">
+              <% ['info','warning','success','error'].forEach(t => { %>
+                <option value="<%= t %>" <%= (A.Type||'info')===t ? 'selected' : '' %>><%= t %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field"><label class="toggle" style="margin-top:26px"><input type="checkbox" name="announcement[Dismissible]" value="true" <%= A.Dismissible !== false ? 'checked' : '' %>><span class="track"></span><span class="lbl">Visitors can dismiss it</span></label></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-palette"></i><div><div class="panel-title">Status colours</div><div class="panel-desc">Colours used on the page and in webhook messages.</div></div></div>
+        <div class="panel-body grid-4">
+          <% [['Online','Online'],['Offline','Offline'],['PartialOffline','Partial'],['Maintenance','Maintenance']].forEach(([key,label]) => { %>
+            <div class="field"><label><%= label %></label><div class="color-row"><input type="color" name="colors[<%= key %>]" value="<%= SC[key] || '#888888' %>"></div></div>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-gauge-high"></i><div><div class="panel-title">Performance</div><div class="panel-desc">How services are checked. Defaults are good for most setups.</div></div></div>
+        <div class="panel-body grid-4">
+          <div class="field"><label>Concurrency</label><input type="number" name="perf[ConcurrencyLimit]" value="<%= PERF.ConcurrencyLimit ?? 10 %>" min="1"></div>
+          <div class="field"><label>Debounce count</label><input type="number" name="perf[DebounceCount]" value="<%= PERF.DebounceCount ?? 2 %>" min="1"></div>
+          <div class="field"><label>Debounce window (ms)</label><input type="number" name="perf[DebounceWindow]" value="<%= PERF.DebounceWindow ?? 30000 %>" min="0"></div>
+          <div class="field"><label>Max backoff (ms)</label><input type="number" name="perf[MaxBackoffInterval]" value="<%= PERF.MaxBackoffInterval ?? 300000 %>" min="0"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fab fa-discord"></i><div><div class="panel-title">Discord bot</div><div class="panel-desc">The bot posts a live status embed to a channel. The bot token stays in config.yml. Enabling/disabling the bot or changing the token needs a restart.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field full"><label class="toggle"><input type="checkbox" name="bot[Enabled]" value="true" <%= BOT.Enabled ? 'checked' : '' %>><span class="track"></span><span class="lbl">Enable the Discord bot</span></label></div>
+          <div class="field"><label>Guild ID</label><input type="text" class="mono" name="bot[GuildID]" value="<%= BOT.GuildID || '' %>"></div>
+          <div class="field"><label>Channel ID</label><input type="text" class="mono" name="bot[ChannelID]" value="<%= BOT.ChannelID || '' %>"></div>
+          <div class="field"><label>Update interval</label><input type="text" name="bot[UpdateInterval]" value="<%= BOT.UpdateInterval || '1m' %>" placeholder="1m"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-message"></i><div><div class="panel-title">Discord embed</div><div class="panel-desc">Layout of the bot's status embed. Variables like {{siteName}}, {{servicesText}}, {{overallStatus}} are supported.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field full"><label>Title</label><input type="text" name="embed[Title]" value="<%= EMBED.Title || '' %>"></div>
+          <div class="field full"><label>Description</label><textarea name="embed[Description]"><%= EMBED.Description || '' %></textarea></div>
+          <div class="field"><label>Service format</label><input type="text" class="mono" name="embed[ServiceFormat]" value="<%= EMBED.ServiceFormat || '' %>"></div>
+          <div class="field"><label>Category format</label><input type="text" class="mono" name="embed[CategoryFormat]" value="<%= EMBED.CategoryFormat || '' %>"></div>
+          <div class="field full"><label>Footer text</label><input type="text" name="embed[FooterText]" value="<%= EMBED.FooterText || '' %>"></div>
+        </div>
+        <div class="panel-body grid-4" style="border-top:1px solid var(--line)">
+          <% [['online','Online'],['offline','Offline'],['partial','Partial'],['maintenance','Maintenance']].forEach(([key,label]) => { %>
+            <div class="field"><label><%= label %> colour</label><input type="color" name="embed[Colors][<%= key %>]" value="<%= EC[key] || '#888888' %>"></div>
+          <% }) %>
+          <% [['online','Online'],['offline','Offline'],['partial','Partial'],['maintenance','Maintenance']].forEach(([key,label]) => { %>
+            <div class="field"><label><%= label %> emoji</label><input type="text" name="embed[Emojis][<%= key %>]" value="<%= EE[key] || '' %>"></div>
+          <% }) %>
+        </div>
+        <div class="panel-body grid-3" style="border-top:1px solid var(--line)">
+          <label class="toggle"><input type="checkbox" name="embed[ShowUptime]" value="true" <%= show(EMBED.ShowUptime, true) %>><span class="track"></span><span class="lbl">Show uptime</span></label>
+          <label class="toggle"><input type="checkbox" name="embed[ShowResponseTime]" value="true" <%= show(EMBED.ShowResponseTime, false) %>><span class="track"></span><span class="lbl">Show response time</span></label>
+          <label class="toggle"><input type="checkbox" name="embed[ShowThumbnail]" value="true" <%= show(EMBED.ShowThumbnail, true) %>><span class="track"></span><span class="lbl">Show thumbnail</span></label>
+          <label class="toggle"><input type="checkbox" name="embed[ShowFooter]" value="true" <%= show(EMBED.ShowFooter, true) %>><span class="track"></span><span class="lbl">Show footer</span></label>
+          <label class="toggle"><input type="checkbox" name="embed[ShowFields]" value="true" <%= show(EMBED.ShowFields, true) %>><span class="track"></span><span class="lbl">Show fields</span></label>
+        </div>
+        <div class="panel-body" style="border-top:1px solid var(--line)">
+          <div class="field full"><label>Fields (advanced — JSON array)</label>
+            <textarea class="mono" name="embedFieldsJson" style="min-height:120px"><%= JSON.stringify(EMBED.Fields || [], null, 2) %></textarea>
+            <span class="hint">Each field: {"Name": "...", "Value": "...", "Inline": true}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><i class="fas fa-bell"></i><div><div class="panel-title">Webhook messages</div><div class="panel-desc">Per-service Discord webhook notifications on status change.</div></div></div>
+        <div class="panel-body grid">
+          <div class="field"><label>Online title</label><input type="text" name="webhook[Online][Title]" value="<%= WHOn.Title || '' %>"></div>
+          <div class="field"><label>Offline title</label><input type="text" name="webhook[Offline][Title]" value="<%= WHOff.Title || '' %>"></div>
+          <div class="field full"><label>Online description</label><textarea class="mono" name="webhook[Online][Description]"><%= WHOn.Description || '' %></textarea></div>
+          <div class="field full"><label>Offline description</label><textarea class="mono" name="webhook[Offline][Description]"><%= WHOff.Description || '' %></textarea></div>
+        </div>
+        <div class="panel-foot"><button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Save all settings</button></div>
+      </section>
+    </form>
+  </div>
+
+  <!-- Service modal -->
+  <div class="modal" id="svcModal">
+    <div class="modal-bg" onclick="closeServiceModal()"></div>
+    <div class="modal-card">
+      <div class="panel-head"><i class="fas fa-server"></i><div style="flex:1"><div class="panel-title" id="svcModalTitle">Add service</div></div>
+        <button class="btn btn-sm" onclick="closeServiceModal()"><i class="fas fa-xmark"></i></button></div>
+      <div class="panel-body grid">
+        <input type="hidden" id="svcId">
+        <div class="field full"><label>Name</label><input type="text" id="svcName" placeholder="Main Website"></div>
+        <div class="field"><label>Type</label>
+          <select id="svcType" onchange="togglePort()">
+            <option value="website">Website</option>
+            <option value="ip">IP (ping)</option>
+            <option value="minecraft">Minecraft</option>
+            <option value="tcp">TCP port</option>
+            <option value="udp">UDP port</option>
+          </select>
+        </div>
+        <div class="field"><label>Category</label><input type="text" id="svcCategory" placeholder="Web Services"></div>
+        <div class="field full"><label>URL / host</label><input type="text" id="svcUrl" placeholder="https://example.com or 8.8.8.8"></div>
+        <div class="field" id="svcPortField" style="display:none"><label>Port</label><input type="number" id="svcPort" min="1" max="65535"></div>
+        <div class="field full"><label>Webhook URL <span class="hint">(optional)</span></label><input type="text" id="svcWebhook" placeholder="Discord webhook for status changes"></div>
+        <div class="field full"><label>Tooltip <span class="hint">(optional)</span></label><input type="text" id="svcTooltip"></div>
+        <div class="field full"><label class="toggle"><input type="checkbox" id="svcMaintenance"><span class="track"></span><span class="lbl">Under maintenance</span></label></div>
+        <div class="err full" id="svcError"></div>
+      </div>
+      <div class="panel-foot">
+        <button class="btn" onclick="closeServiceModal()">Cancel</button>
+        <button class="btn btn-primary" id="svcSave" onclick="saveService()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="savebar" id="savebar">
+    <span class="msg"><i class="fas fa-circle-exclamation"></i>You have unsaved changes</span>
+    <button type="button" class="btn btn-primary" onclick="submitSettings()"><i class="fas fa-floppy-disk"></i> Save all settings</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const modal = document.getElementById('svcModal');
+    const d = s => decodeURIComponent(s || '');
+    const CSRF = '<%= csrfToken %>';
+
+    function togglePort() {
+      const t = document.getElementById('svcType').value;
+      document.getElementById('svcPortField').style.display = (t === 'tcp' || t === 'udp') ? 'flex' : 'none';
+    }
+
+    function openServiceModal() {
+      document.getElementById('svcModalTitle').textContent = 'Add service';
+      document.getElementById('svcSave').textContent = 'Create';
+      document.getElementById('svcId').value = '';
+      document.getElementById('svcName').value = '';
+      document.getElementById('svcType').value = 'website';
+      document.getElementById('svcCategory').value = '';
+      document.getElementById('svcUrl').value = '';
+      document.getElementById('svcPort').value = '';
+      document.getElementById('svcWebhook').value = '';
+      document.getElementById('svcTooltip').value = '';
+      document.getElementById('svcMaintenance').checked = false;
+      document.getElementById('svcError').style.display = 'none';
+      togglePort();
+      modal.classList.add('open');
+    }
+
+    function editService(btn) {
+      const r = btn.closest('tr');
+      document.getElementById('svcModalTitle').textContent = 'Edit service';
+      document.getElementById('svcSave').textContent = 'Save changes';
+      document.getElementById('svcId').value = r.dataset.id;
+      document.getElementById('svcName').value = d(r.dataset.name);
+      document.getElementById('svcType').value = r.dataset.type;
+      document.getElementById('svcCategory').value = d(r.dataset.category);
+      document.getElementById('svcUrl').value = d(r.dataset.url);
+      document.getElementById('svcPort').value = r.dataset.port || '';
+      document.getElementById('svcWebhook').value = d(r.dataset.webhookurl);
+      document.getElementById('svcTooltip').value = d(r.dataset.tooltip);
+      document.getElementById('svcMaintenance').checked = r.dataset.maintenance === '1';
+      document.getElementById('svcError').style.display = 'none';
+      togglePort();
+      modal.classList.add('open');
+    }
+
+    function closeServiceModal() { modal.classList.remove('open'); }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    async function saveService() {
+      const id = document.getElementById('svcId').value;
+      const payload = {
+        name: document.getElementById('svcName').value.trim(),
+        type: document.getElementById('svcType').value,
+        category: document.getElementById('svcCategory').value.trim(),
+        url: document.getElementById('svcUrl').value.trim(),
+        port: document.getElementById('svcPort').value,
+        webhookURL: document.getElementById('svcWebhook').value.trim(),
+        tooltip: document.getElementById('svcTooltip').value.trim(),
+        maintenance: document.getElementById('svcMaintenance').checked
+      };
+      const errEl = document.getElementById('svcError');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch(id ? `/dashboard/services/${id}` : '/dashboard/services', {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': CSRF },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Failed to save service.';
+          errEl.style.display = 'block';
+          return;
+        }
+        location.reload();
+      } catch (e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+      }
+    }
+
+    async function deleteService(id, name) {
+      if (!confirm(`Delete "${name}"? Its history will be removed too.`)) return;
+      try {
+        const res = await fetch(`/dashboard/services/${id}`, { method: 'DELETE', headers: { 'x-csrf-token': CSRF } });
+        if (res.ok) { location.reload(); }
+        else { const data = await res.json(); alert(data.error || 'Failed to delete service.'); }
+      } catch (e) { alert('Network error. Please try again.'); }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeServiceModal(); });
+
+    // Show a sticky "Save all settings" bar as soon as the settings form changes.
+    const settingsForm = document.getElementById('settingsForm');
+    const savebar = document.getElementById('savebar');
+    let dirty = false;
+    function markDirty() {
+      if (dirty) return;
+      dirty = true;
+      savebar.classList.add('show');
+    }
+    settingsForm.addEventListener('input', markDirty);
+    settingsForm.addEventListener('change', markDirty);
+    function submitSettings() { settingsForm.requestSubmit(); }
+
+    <% if (saved) { %>showToast('Settings saved');<% } %>
+  </script>
+</body>
+</html>

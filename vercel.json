@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "_comment": "PlasmaStatus Vercel config",
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "includeFiles": [
+          "views/**",
+          "public/**",
+          "models/**",
+          "config.yml",
+          "env-config.js",
+          "settings.js",
+          "license.js",
+          "discord-bot.js",
+          "discord-slash.js"
+        ]
+      }
+    },
+    {
+      "src": "api/discord.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "models/**",
+          "env-config.js",
+          "settings.js",
+          "discord-slash.js",
+          "index.js",
+          "license.js",
+          "discord-bot.js"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/discord",
+      "dest": "/api/discord.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

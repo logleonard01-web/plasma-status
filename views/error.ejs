@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= (config.PageSettings && config.PageSettings.Name) || 'PlasmaStatus' %></title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --accent: <%= (config.PageSettings && config.PageSettings.ThemeColor) || '#5e99ff' %>; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0b0e14; color: #e6e9ef;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { max-width: 440px; text-align: center; background: #141925; border: 1px solid #222a3a;
+      border-radius: 16px; padding: 40px 32px; }
+    .icon { font-size: 40px; margin-bottom: 16px; }
+    h1 { font-size: 20px; margin-bottom: 10px; }
+    p { color: #9aa4b8; font-size: 15px; line-height: 1.5; margin-bottom: 22px; }
+    a { display: inline-block; text-decoration: none; background: var(--accent); color: #fff;
+      padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🔒</div>
+    <h1>Access denied</h1>
+    <p><%= message || 'Something went wrong.' %></p>
+    <a href="/">Back to status page</a>
+  </div>
+</body>
+</html>

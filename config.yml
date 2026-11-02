@@ -1,0 +1,42 @@
+# ===========================================================================
+# PlasmaStatus Configuration
+# ===========================================================================
+# VERCEL USERS: Do NOT put secrets here. Add them as Environment Variables in
+# the Vercel dashboard (Project → Settings → Environment Variables).
+# See .env.example for the full list of supported variables.
+#
+# SELF-HOSTED USERS: Fill in the values below. Environment variables always
+# take priority over this file if both are set.
+#
+# Support: https://plsrv.co/discord
+# Website: https://plasma.services
+# ===========================================================================
+LicenseKey: "LICENSE_KEY"
+LicenseConnectionType: "default"
+MongoURI: "mongodb://mongo:27017/plasmastatus"
+DebugMode: false
+
+# ===========================================================================
+# WEBSERVER
+# ===========================================================================
+PageSettings:
+  baseURL: "http://localhost:3000"
+  Port: 3000
+  trustProxy: 0
+
+# ===========================================================================
+# STAFF DASHBOARD (DISCORD OAUTH2)
+# ===========================================================================
+OwnerID: ["USER_ID"]
+clientID: "000000000000000000"
+clientSecret: ""
+callbackURL: "http://localhost:3000/auth/discord/callback"
+secretKey: "change_me_to_a_long_random_secret"
+Secure: false
+SessionExpires: "7d"
+
+# ===========================================================================
+# DISCORD BOT TOKEN
+# ===========================================================================
+DiscordBot:
+  Token: "DISCORD_TOKEN"
