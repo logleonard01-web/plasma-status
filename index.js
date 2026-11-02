@@ -36,7 +36,10 @@ let config = settings.fileConfig;
 
 const app = express();
 const port = config.PageSettings.Port;
-if (config.PageSettings.trustProxy && config.PageSettings.trustProxy > 0) app.set('trust proxy', config.PageSettings.trustProxy);
+// Vercel (and most reverse-proxies) require trust proxy for secure cookies / IP detection.
+if (process.env.VERCEL || (config.PageSettings.trustProxy && config.PageSettings.trustProxy > 0)) {
+  app.set('trust proxy', 1);
+}
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -76,7 +79,7 @@ app.use(session({
     autoRemove: 'native'
   }),
   cookie: {
-    secure: !!config.Secure,
+    secure: process.env.VERCEL ? true : !!config.Secure,
     httpOnly: true,
     sameSite: 'lax',
     maxAge: sessionTtl
@@ -138,6 +141,10 @@ function verifyCsrf(req, res, next) {
     expected.length === provided.length &&
     crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
   if (ok) return next();
+  // Return JSON for fetch() callers (dashboard API); fall back to rendered page for form posts.
+  if (req.xhr || (req.headers.accept || '').includes('application/json') || req.headers['x-csrf-token']) {
+    return res.status(403).json({ error: 'Session expired or invalid. Reload the page and try again.' });
+  }
   return res.status(403).render('error', {
     config,
     message: 'Your session security token was missing or invalid. Reload the dashboard and try again.'
