@@ -461,11 +461,27 @@
     }
 
     async function deleteService(id, name) {
-      if (!confirm(`Delete "${name}"? Its history will be removed too.`)) return;
+      // Use a custom confirm overlay — native confirm() is silently blocked in
+      // some mobile browsers and iframe / PWA contexts.
+      const confirmed = await new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+        overlay.innerHTML = `<div style="background:#1e2130;border:1px solid #333;border-radius:10px;padding:24px 28px;max-width:340px;width:90%;text-align:center">
+          <div style="font-size:1.05rem;margin-bottom:16px">Delete <strong>${name.replace(/</g,'&lt;')}</strong>?<br><span style="font-size:.85rem;opacity:.7">Its history will be removed too.</span></div>
+          <div style="display:flex;gap:10px;justify-content:center">
+            <button id="_del_cancel" style="flex:1;padding:8px;border-radius:6px;border:1px solid #555;background:#2a2d3e;color:#ccc;cursor:pointer">Cancel</button>
+            <button id="_del_confirm" style="flex:1;padding:8px;border-radius:6px;border:none;background:#e53e3e;color:#fff;cursor:pointer;font-weight:600">Delete</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#_del_confirm').onclick = () => { document.body.removeChild(overlay); resolve(true); };
+        overlay.querySelector('#_del_cancel').onclick  = () => { document.body.removeChild(overlay); resolve(false); };
+      });
+      if (!confirmed) return;
       try {
         const res = await fetch(`/dashboard/services/${id}`, { method: 'DELETE', headers: { 'x-csrf-token': CSRF } });
         if (res.ok) { location.reload(); }
-        else { const data = await res.json(); alert(data.error || 'Failed to delete service.'); }
+        else { const data = await res.json().catch(() => ({})); alert(data.error || 'Failed to delete service.'); }
       } catch (e) { alert('Network error. Please try again.'); }
     }
 
