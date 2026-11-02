@@ -43,10 +43,6 @@
         ]
       }
     },
-    {
-      "src": "api/presence.js",
-      "use": "@vercel/node"
-    }
   ],
   "routes": [
     {
@@ -56,10 +52,6 @@
     {
       "src": "/api/register",
       "dest": "/api/register.js"
-    },
-    {
-      "src": "/api/presence",
-      "dest": "/api/presence.js"
     },
     {
       "src": "/(.*)",
