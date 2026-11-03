@@ -284,56 +284,7 @@ async function handleIncidentList(interaction, cfg) {
   return slash.reply(slash.buildIncidentListEmbed(incidents, cfg.PageSettings?.Name));
 }
 
-// ---------------------------------------------------------------------------
-// /freedns command handler
-// ---------------------------------------------------------------------------
-async function handleFreeDns(interaction) {
-  const opts  = interaction.data.options || [];
-  const first = opts[0];
-  if (!first) return slash.reply('❓ Usage: `/freedns <subcommand>`', true);
-
-  const firstName = first.name; // 'server' | 'domains' | 'filter' | 'check'
-
-  // standalone subcommand: /freedns check domain:<d>
-  if (firstName === 'check') {
-    const domain = first.options?.find(o => o.name === 'domain')?.value;
-    if (!domain) return slash.reply('❓ Please provide a domain.', true);
-    return slash.buildFreeDnsCheck(domain);
-  }
-
-  // subcommand groups
-  const sub = first.options?.[0];
-  if (!sub) return slash.reply(`❓ Usage: \`/freedns ${firstName} <subcommand>\``, true);
-
-  if (firstName === 'server') {
-    if (sub.name === 'status')  return slash.buildFreeDnsServerStatus();
-    if (sub.name === 'changes') return slash.buildFreeDnsChanges();
-  }
-
-  if (firstName === 'domains') {
-    if (sub.name === 'list') {
-      const page = sub.options?.find(o => o.name === 'page')?.value || 1;
-      return slash.buildFreeDnsDomainList(page);
-    }
-    if (sub.name === 'search') {
-      const query = sub.options?.find(o => o.name === 'query')?.value || '';
-      if (!query) return slash.reply('❓ Please provide a search query.', true);
-      return slash.buildFreeDnsSearch(query);
-    }
-    if (sub.name === 'count') return slash.buildFreeDnsCount();
-  }
-
-  if (firstName === 'filter') {
-    if (sub.name === 'list') return slash.buildFreeDnsFilterList();
-    const name = sub.options?.find(o => o.name === 'name')?.value;
-    if (!name) return slash.reply('❓ Please provide a filter name.', true);
-    if (sub.name === 'info')    return slash.buildFreeDnsFilterInfo(name);
-    if (sub.name === 'skip')    return slash.buildFreeDnsFilterSkip(name);
-    if (sub.name === 'blocked') return slash.buildFreeDnsFilterBlocked(name);
-  }
-
-  return slash.reply('❓ Unknown `/freedns` subcommand.', true);
-}
+// /freedns is handled by AIO functions in discord-slash.js
 
 // ---------------------------------------------------------------------------
 // Main handler
@@ -401,7 +352,7 @@ module.exports = async (req, res) => {
           break;
         }
         case 'freedns':
-          response = await handleFreeDns(interaction);
+          response = await slash.handleFreeDnsAIO(interaction);
           break;
         default:
           response = slash.reply('❓ Unknown command.', true);
@@ -411,6 +362,36 @@ module.exports = async (req, res) => {
     } catch (err) {
       console.error('[Discord Interactions] Error:', err);
       return res.json(slash.reply(`❌ Error: ${err.message}`, true));
+    }
+  }
+
+  // MESSAGE_COMPONENT (type 3) — button clicks, select menus
+  if (interaction.type === 3) {
+    try {
+      await ensureDb();
+      const id = interaction.data?.custom_id || '';
+      if (id.startsWith('fn:')) {
+        return res.json(await slash.handleFreeDnsComponent(interaction));
+      }
+      return res.json({ type: 6 }); // DEFERRED_UPDATE_MESSAGE for unknown components
+    } catch (err) {
+      console.error('[Component] Error:', err);
+      return res.json({ type: 7, data: { content: `❌ Error: ${err.message}`, embeds: [], components: [] } });
+    }
+  }
+
+  // MODAL_SUBMIT (type 5)
+  if (interaction.type === 5) {
+    try {
+      await ensureDb();
+      const id = interaction.data?.custom_id || '';
+      if (id === 'fn:check_submit') {
+        return res.json(await slash.handleFreeDnsModalSubmit(interaction));
+      }
+      return res.json({ type: 4, data: { content: '❓ Unknown modal.', flags: 64 } });
+    } catch (err) {
+      console.error('[Modal] Error:', err);
+      return res.json({ type: 4, data: { content: `❌ Error: ${err.message}`, flags: 64 } });
     }
   }
 
