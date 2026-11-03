@@ -354,6 +354,13 @@ module.exports = async (req, res) => {
         case 'freedns':
           response = await slash.handleFreeDnsAIO(interaction);
           break;
+        case 'zap': {
+          const filterName = interaction.data.options?.find(o => o.name === 'filter')?.value;
+          response = filterName
+            ? await slash.buildZap(filterName)
+            : slash.reply('❓ Please provide a filter name.', true);
+          break;
+        }
         default:
           response = slash.reply('❓ Unknown command.', true);
       }

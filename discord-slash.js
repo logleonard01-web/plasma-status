@@ -134,6 +134,25 @@ const COMMANDS = [
     name: 'freedns',
     description: 'FreeDNS domain & filter tracker — interactive all-in-one panel.',
   },
+  // /zap — quick unblocked list for a filter
+  {
+    name: 'zap',
+    description: 'List domains unblocked on a specific content filter.',
+    options: [
+      {
+        type: 3, // STRING
+        name: 'filter',
+        description: 'Filter name (e.g. securly, goguardian, lightspeed).',
+        required: true,
+        choices: [
+          ...['lightspeed','fortiguard','palo','securly','umbrella','linewize','router',
+              'blocksi','blocksiai','goguardian','dnsfilter','iboss','gaggle',
+              'contentkeeper','aristotle','senso','lanschool','deledao','nextdns',
+              'redstar','unifi','barracuda','sophos','qustodio','cleanbrowsing'].map(n => ({ name: n, value: n })),
+        ],
+      },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -797,6 +816,34 @@ async function handleFreeDnsModalSubmit(interaction) {
   return { type: 4, data: { ...data, flags: 64 } }; // ephemeral
 }
 
+// ── /zap ─────────────────────────────────────────────────────────────────────
+
+async function buildZap(filterName) {
+  let raw;
+  try {
+    raw = await freednsGet(`/api/filters/${encodeURIComponent(filterName)}`);
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return { type: 4, data: { embeds: [{ title: `❌ ${filterName}`, description: 'No data yet — filter hasn\'t been checked or doesn\'t exist.', color: COLOR.offline }], flags: 0 } };
+    }
+    throw err;
+  }
+  const domains = raw.split(',').map(d => d.trim()).filter(Boolean);
+  const preview = domains.slice(0, 50).join('\n');
+  return {
+    type: 4,
+    data: {
+      embeds: [{
+        title: `🟢 ${filterName} — Unblocked Domains`,
+        description: preview || '_No unblocked domains yet_',
+        color: COLOR.online,
+        footer: { text: `${domains.length.toLocaleString()} unblocked${domains.length > 50 ? ' (showing first 50)' : ''}` },
+        timestamp: new Date().toISOString(),
+      }],
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Interaction response helpers
 // ---------------------------------------------------------------------------
@@ -848,4 +895,6 @@ module.exports = {
   handleFreeDnsAIO,
   handleFreeDnsComponent,
   handleFreeDnsModalSubmit,
+  // /zap
+  buildZap,
 };
