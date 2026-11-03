@@ -42,27 +42,6 @@
           "discord-slash.js"
         ]
       }
-    },
-    {
-      "src": "api/cron/update.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "models/**",
-          "env-config.js",
-          "settings.js",
-          "discord-slash.js",
-          "index.js",
-          "license.js",
-          "discord-bot.js"
-        ]
-      }
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/update",
-      "schedule": "*/10 * * * *"
     }
   ],
   "routes": [
@@ -73,10 +52,6 @@
     {
       "src": "/api/register",
       "dest": "/api/register.js"
-    },
-    {
-      "src": "/api/cron/update",
-      "dest": "/api/cron/update.js"
     },
     {
       "src": "/(.*)",

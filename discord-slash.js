@@ -14,6 +14,16 @@
  *   /incident list       – list recent incidents
  *   /embed setup         – post a live auto-updating status embed (staff only)
  *   /embed remove        – remove the auto-updating embed (staff only)
+ *   /freedns server status   – FreeDNS scraper server status
+ *   /freedns server changes  – most recent domain additions/removals
+ *   /freedns domains list    – paginated domain list
+ *   /freedns domains search  – search domains by keyword
+ *   /freedns domains count   – total domain count
+ *   /freedns check           – all filter results for one domain
+ *   /freedns filter list     – progress overview for all 38 filters
+ *   /freedns filter info     – domains unblocked on a specific filter
+ *   /freedns filter skip     – skip list for a specific filter
+ *   /freedns filter blocked  – how many domains are blocked on a filter
  */
 
 'use strict';
@@ -115,6 +125,193 @@ const COMMANDS = [
         type: 1, // SUB_COMMAND
         name: 'list',
         description: 'Show recent incidents.',
+      },
+    ],
+  },
+  // -------------------------------------------------------------------------
+  // /freedns — FreeDNS domain & filter explorer
+  // -------------------------------------------------------------------------
+  {
+    name: 'freedns',
+    description: 'Explore FreeDNS domains and filter check results.',
+    options: [
+      // ── server group ──────────────────────────────────────────────────────
+      {
+        type: 2, // SUB_COMMAND_GROUP
+        name: 'server',
+        description: 'FreeDNS scraper server info.',
+        options: [
+          {
+            type: 1, // SUB_COMMAND
+            name: 'status',
+            description: 'Full server status — domain count, last scrape, VPN state, uptime, etc.',
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'changes',
+            description: 'Domains added and removed in the most recent scrape.',
+          },
+        ],
+      },
+      // ── domains group ─────────────────────────────────────────────────────
+      {
+        type: 2, // SUB_COMMAND_GROUP
+        name: 'domains',
+        description: 'Browse and search FreeDNS domains.',
+        options: [
+          {
+            type: 1, // SUB_COMMAND
+            name: 'list',
+            description: 'Show a page of FreeDNS domains.',
+            options: [
+              {
+                type: 4, // INTEGER
+                name: 'page',
+                description: 'Page number (each page shows 20 domains, default 1).',
+                required: false,
+                min_value: 1,
+              },
+            ],
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'search',
+            description: 'Search FreeDNS domains for a keyword.',
+            options: [
+              {
+                type: 3, // STRING
+                name: 'query',
+                description: 'Text to search for (e.g. "chat", "free", "us").',
+                required: true,
+              },
+            ],
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'count',
+            description: 'How many FreeDNS domains are currently tracked.',
+          },
+        ],
+      },
+      // ── check subcommand ──────────────────────────────────────────────────
+      {
+        type: 1, // SUB_COMMAND
+        name: 'check',
+        description: 'Show every filter\'s result for one specific domain.',
+        options: [
+          {
+            type: 3, // STRING
+            name: 'domain',
+            description: 'The domain to look up (e.g. mooo.com).',
+            required: true,
+          },
+        ],
+      },
+      // ── filter group ──────────────────────────────────────────────────────
+      {
+        type: 2, // SUB_COMMAND_GROUP
+        name: 'filter',
+        description: 'Inspect content-filter check results.',
+        options: [
+          {
+            type: 1, // SUB_COMMAND
+            name: 'list',
+            description: 'Progress overview for all 38 content filters.',
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'info',
+            description: 'Domains that passed (unblocked) a specific filter.',
+            options: [
+              {
+                type: 3, // STRING
+                name: 'name',
+                description: 'Filter name (e.g. securly, goguardian, lightspeed).',
+                required: true,
+                choices: [
+                  { name: 'lightspeed',    value: 'lightspeed'    },
+                  { name: 'fortiguard',    value: 'fortiguard'    },
+                  { name: 'palo',          value: 'palo'          },
+                  { name: 'securly',       value: 'securly'       },
+                  { name: 'umbrella',      value: 'umbrella'      },
+                  { name: 'linewize',      value: 'linewize'      },
+                  { name: 'goguardian',    value: 'goguardian'    },
+                  { name: 'dnsfilter',     value: 'dnsfilter'     },
+                  { name: 'iboss',         value: 'iboss'         },
+                  { name: 'nextdns',       value: 'nextdns'       },
+                  { name: 'adguard',       value: 'adguard'       },
+                  { name: 'cleanbrowsing', value: 'cleanbrowsing' },
+                  { name: 'cisco',         value: 'cisco'         },
+                  { name: 'forcepoint',    value: 'forcepoint'    },
+                  { name: 'sophos',        value: 'sophos'        },
+                  { name: 'barracuda',     value: 'barracuda'     },
+                  { name: 'blocksi',       value: 'blocksi'       },
+                  { name: 'qustodio',      value: 'qustodio'      },
+                  { name: 'watchguard',    value: 'watchguard'    },
+                  { name: 'safesurfer',    value: 'safesurfer'    },
+                  { name: 'controld',      value: 'controld'      },
+                  { name: 'smoothwall',    value: 'smoothwall'    },
+                  { name: 'fortinet',      value: 'fortinet'      },
+                  { name: 'hapara',        value: 'hapara'        },
+                  { name: 'paloalto',      value: 'paloalto'      },
+                ],
+              },
+            ],
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'skip',
+            description: 'Domains permanently skipped (blocked) on a specific filter.',
+            options: [
+              {
+                type: 3, // STRING
+                name: 'name',
+                description: 'Filter name (e.g. securly, goguardian, lightspeed).',
+                required: true,
+                choices: [
+                  { name: 'lightspeed',    value: 'lightspeed'    },
+                  { name: 'fortiguard',    value: 'fortiguard'    },
+                  { name: 'palo',          value: 'palo'          },
+                  { name: 'securly',       value: 'securly'       },
+                  { name: 'umbrella',      value: 'umbrella'      },
+                  { name: 'linewize',      value: 'linewize'      },
+                  { name: 'goguardian',    value: 'goguardian'    },
+                  { name: 'dnsfilter',     value: 'dnsfilter'     },
+                  { name: 'iboss',         value: 'iboss'         },
+                  { name: 'nextdns',       value: 'nextdns'       },
+                  { name: 'adguard',       value: 'adguard'       },
+                  { name: 'cleanbrowsing', value: 'cleanbrowsing' },
+                  { name: 'cisco',         value: 'cisco'         },
+                  { name: 'forcepoint',    value: 'forcepoint'    },
+                  { name: 'sophos',        value: 'sophos'        },
+                  { name: 'barracuda',     value: 'barracuda'     },
+                  { name: 'blocksi',       value: 'blocksi'       },
+                  { name: 'qustodio',      value: 'qustodio'      },
+                  { name: 'watchguard',    value: 'watchguard'    },
+                  { name: 'safesurfer',    value: 'safesurfer'    },
+                  { name: 'controld',      value: 'controld'      },
+                  { name: 'smoothwall',    value: 'smoothwall'    },
+                  { name: 'fortinet',      value: 'fortinet'      },
+                  { name: 'hapara',        value: 'hapara'        },
+                  { name: 'paloalto',      value: 'paloalto'      },
+                ],
+              },
+            ],
+          },
+          {
+            type: 1, // SUB_COMMAND
+            name: 'blocked',
+            description: 'How many domains are on a filter\'s block/skip list.',
+            options: [
+              {
+                type: 3, // STRING
+                name: 'name',
+                description: 'Filter name (e.g. securly, goguardian, lightspeed).',
+                required: true,
+              },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -408,6 +605,255 @@ async function deleteEmbedMessage(botToken, channelId, messageId) {
 }
 
 // ---------------------------------------------------------------------------
+// FreeDNS API helpers & response builders
+// ---------------------------------------------------------------------------
+
+const FREEDNS_BASE = process.env.FREEDNS_API_URL || 'http://163.123.238.146:5206';
+
+async function freednsGet(path) {
+  const axios = require('axios');
+  const { data } = await axios.get(`${FREEDNS_BASE}${path}`, { timeout: 8000 });
+  return data;
+}
+
+/** /freedns server status */
+async function buildFreeDnsServerStatus() {
+  const s = await freednsGet('/api/status');
+  const uptime = s.uptimeSeconds != null
+    ? (() => {
+        const h = Math.floor(s.uptimeSeconds / 3600);
+        const m = Math.floor((s.uptimeSeconds % 3600) / 60);
+        return h ? `${h}h ${m}m` : `${m}m`;
+      })()
+    : 'N/A';
+
+  const fields = [
+    { name: '📦 Domain count',  value: String(s.count ?? 'N/A'),    inline: true },
+    { name: '🔄 Scraping now',  value: s.scraping ? 'Yes' : 'No',   inline: true },
+    { name: '🌐 VPN',           value: s.vpn      ? 'Active' : 'Off', inline: true },
+    { name: '🟢 Ready',         value: s.ready    ? 'Yes' : 'No',   inline: true },
+    { name: '⏱️ Uptime',        value: uptime,                       inline: true },
+    { name: '🔍 Filter check',  value: s.filterCheck ? 'Running' : 'Idle', inline: true },
+  ];
+
+  if (s.lastCheck)   fields.push({ name: '🕐 Last check',   value: `<t:${Math.floor(new Date(s.lastCheck).getTime()/1000)}:R>`,   inline: true });
+  if (s.lastSuccess) fields.push({ name: '✅ Last success', value: `<t:${Math.floor(new Date(s.lastSuccess).getTime()/1000)}:R>`, inline: true });
+  if (s.nextScrape)  fields.push({ name: '⏭️ Next scrape',  value: `<t:${Math.floor(new Date(s.nextScrape).getTime()/1000)}:R>`,  inline: true });
+  if (s.lastError)   fields.push({ name: '❌ Last error',   value: `\`${String(s.lastError).slice(0, 200)}\``,                    inline: false });
+
+  return reply({
+    embeds: [{
+      title: '🌐 FreeDNS Scraper — Server Status',
+      color: s.ready ? COLOR.online : COLOR.partial,
+      fields,
+      footer: { text: 'FreeDNS API • /freedns server status' },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+}
+
+/** /freedns server changes */
+async function buildFreeDnsChanges() {
+  const c = await freednsGet('/api/changes');
+  const at = c.at ? `<t:${Math.floor(new Date(c.at).getTime()/1000)}:F>` : 'N/A';
+  const added   = (c.added   || []).slice(0, 20);
+  const removed = (c.removed || []).slice(0, 20);
+
+  const fields = [];
+  if (added.length)   fields.push({ name: `✅ Added (${c.added?.length ?? 0})`,   value: added.join(', ')   || '—', inline: false });
+  if (removed.length) fields.push({ name: `❌ Removed (${c.removed?.length ?? 0})`, value: removed.join(', ') || '—', inline: false });
+
+  return reply({
+    embeds: [{
+      title: '📋 FreeDNS — Recent Changes',
+      description: `Scrape at ${at}`,
+      color: COLOR.info,
+      fields: fields.length ? fields : [{ name: 'No changes', value: 'No domains were added or removed in the last scrape.', inline: false }],
+      footer: { text: 'FreeDNS API • /freedns server changes' },
+    }],
+  });
+}
+
+/** /freedns domains list [page] */
+async function buildFreeDnsDomainList(page = 1) {
+  const raw  = await freednsGet('/domains.txt');
+  const all  = raw.split(',').map(d => d.trim()).filter(Boolean);
+  const PAGE = 20;
+  const total = all.length;
+  const totalPages = Math.ceil(total / PAGE);
+  const p    = Math.max(1, Math.min(page, totalPages));
+  const slice = all.slice((p - 1) * PAGE, p * PAGE);
+
+  return reply({
+    embeds: [{
+      title: `🌐 FreeDNS Domains — Page ${p}/${totalPages}`,
+      description: slice.map((d, i) => `\`${(p-1)*PAGE + i + 1}.\` ${d}`).join('\n'),
+      color: COLOR.info,
+      footer: { text: `${total} total domains • /freedns domains list page:${p}` },
+    }],
+  });
+}
+
+/** /freedns domains search <query> */
+async function buildFreeDnsSearch(query) {
+  const raw = await freednsGet('/domains.txt');
+  const all = raw.split(',').map(d => d.trim()).filter(Boolean);
+  const q   = query.toLowerCase();
+  const matches = all.filter(d => d.includes(q)).slice(0, 25);
+
+  if (!matches.length) {
+    return reply(`🔍 No FreeDNS domains match **${query}**.`, true);
+  }
+
+  return reply({
+    embeds: [{
+      title: `🔍 FreeDNS Search: "${query}"`,
+      description: matches.map((d, i) => `\`${i+1}.\` ${d}`).join('\n'),
+      color: COLOR.info,
+      footer: { text: `Showing ${matches.length} result${matches.length !== 1 ? 's' : ''} (max 25) • /freedns domains search` },
+    }],
+  });
+}
+
+/** /freedns domains count */
+async function buildFreeDnsCount() {
+  const s = await freednsGet('/api/status');
+  return reply({
+    embeds: [{
+      title: '📦 FreeDNS Domain Count',
+      description: `**${(s.count ?? 0).toLocaleString()}** domains currently tracked.`,
+      color: COLOR.info,
+      footer: { text: 'FreeDNS API • /freedns domains count' },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+}
+
+/** /freedns check <domain> */
+async function buildFreeDnsCheck(domain) {
+  let data;
+  try {
+    data = await freednsGet(`/api/results/${encodeURIComponent(domain)}`);
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      return reply(`❌ No results for **${domain}** yet — it may not be a tracked FreeDNS domain or hasn't been checked yet.`, true);
+    }
+    throw err;
+  }
+
+  const results = data.results || {};
+  const entries = Object.entries(results);
+  if (!entries.length) {
+    return reply(`ℹ️ **${domain}** is tracked but hasn't been checked on any filter yet.`, true);
+  }
+
+  const passed  = entries.filter(([, v]) => !v.blocked);
+  const blocked = entries.filter(([, v]) =>  v.blocked);
+
+  const passedStr  = passed.length  ? passed.map(([f, v])  => `🟢 **${f}**${v.category ? ` — ${v.category}` : ''}`).join('\n') : '—';
+  const blockedStr = blocked.length ? blocked.map(([f, v]) => `🔴 **${f}**${v.category ? ` — ${v.category}` : ''}`).join('\n') : '—';
+
+  return reply({
+    embeds: [{
+      title: `🔍 Filter results: ${domain}`,
+      color: blocked.length === 0 ? COLOR.online : (passed.length === 0 ? COLOR.offline : COLOR.partial),
+      fields: [
+        { name: `✅ Passed (${passed.length})`,  value: passedStr.slice(0, 1024),  inline: false },
+        { name: `❌ Blocked (${blocked.length})`, value: blockedStr.slice(0, 1024), inline: false },
+      ],
+      footer: { text: `${entries.length} filters checked • /freedns check` },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+}
+
+/** /freedns filter list */
+async function buildFreeDnsFilterList() {
+  const data = await freednsGet('/api/filters');
+  const filters = data.filters || {};
+  const entries = Object.entries(filters).slice(0, 25);
+
+  const rows = entries.map(([name, f]) => {
+    const phase   = f.phase ? ` (${f.phase})` : '';
+    const running = f.running ? '🔄' : (f.enabled ? '✅' : '⏸️');
+    const checked = f.checkedThisRun != null ? ` — ${f.checkedThisRun} checked` : '';
+    return `${running} **${name}**${phase}${checked}`;
+  });
+
+  return reply({
+    embeds: [{
+      title: '🔍 FreeDNS — Filter Status Overview',
+      description: rows.join('\n') || '_No filter data yet_',
+      color: COLOR.info,
+      footer: { text: `${entries.length} filters shown • /freedns filter list` },
+      timestamp: new Date().toISOString(),
+    }],
+  });
+}
+
+/** /freedns filter info <name> */
+async function buildFreeDnsFilterInfo(name) {
+  let raw;
+  try {
+    raw = await freednsGet(`/api/filters/${encodeURIComponent(name)}`);
+  } catch (err) {
+    if (err?.response?.status === 404) return reply(`❌ Filter **${name}** not found or has no data yet.`, true);
+    throw err;
+  }
+  const domains = raw.split(',').map(d => d.trim()).filter(Boolean);
+  const preview = domains.slice(0, 30).join(', ');
+  return reply({
+    embeds: [{
+      title: `✅ Unblocked on ${name}`,
+      description: preview || '_No unblocked domains yet_',
+      color: COLOR.online,
+      footer: { text: `${domains.length} unblocked domains • /freedns filter info` },
+    }],
+  });
+}
+
+/** /freedns filter skip <name> */
+async function buildFreeDnsFilterSkip(name) {
+  let raw;
+  try {
+    raw = await freednsGet(`/api/filters/${encodeURIComponent(name)}/skip`);
+  } catch (err) {
+    if (err?.response?.status === 404) return reply(`❌ Filter **${name}** not found or has no skip list yet.`, true);
+    throw err;
+  }
+  const domains = raw.split(',').map(d => d.trim()).filter(Boolean);
+  const preview = domains.slice(0, 30).join(', ');
+  return reply({
+    embeds: [{
+      title: `🚫 Skip list (blocked) on ${name}`,
+      description: preview || '_Skip list is empty_',
+      color: COLOR.offline,
+      footer: { text: `${domains.length} blocked domains • /freedns filter skip` },
+    }],
+  });
+}
+
+/** /freedns filter blocked <name> — count only */
+async function buildFreeDnsFilterBlocked(name) {
+  let raw;
+  try {
+    raw = await freednsGet(`/api/filters/${encodeURIComponent(name)}/skip`);
+  } catch (err) {
+    if (err?.response?.status === 404) return reply(`❌ Filter **${name}** not found or has no data yet.`, true);
+    throw err;
+  }
+  const count = raw.split(',').map(d => d.trim()).filter(Boolean).length;
+  return reply({
+    embeds: [{
+      title: `🚫 ${name} — Blocked Domain Count`,
+      description: `**${count.toLocaleString()}** domains are permanently blocked on **${name}**.`,
+      color: count === 0 ? COLOR.online : COLOR.offline,
+      footer: { text: 'FreeDNS API • /freedns filter blocked' },
+    }],
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Interaction response helpers
 // ---------------------------------------------------------------------------
 
@@ -454,4 +900,15 @@ module.exports = {
   reply,
   defer,
   followUp,
+  // FreeDNS builders
+  buildFreeDnsServerStatus,
+  buildFreeDnsChanges,
+  buildFreeDnsDomainList,
+  buildFreeDnsSearch,
+  buildFreeDnsCount,
+  buildFreeDnsCheck,
+  buildFreeDnsFilterList,
+  buildFreeDnsFilterInfo,
+  buildFreeDnsFilterSkip,
+  buildFreeDnsFilterBlocked,
 };

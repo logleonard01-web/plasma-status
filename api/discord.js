@@ -285,6 +285,57 @@ async function handleIncidentList(interaction, cfg) {
 }
 
 // ---------------------------------------------------------------------------
+// /freedns command handler
+// ---------------------------------------------------------------------------
+async function handleFreeDns(interaction) {
+  const opts  = interaction.data.options || [];
+  const first = opts[0];
+  if (!first) return slash.reply('❓ Usage: `/freedns <subcommand>`', true);
+
+  const firstName = first.name; // 'server' | 'domains' | 'filter' | 'check'
+
+  // standalone subcommand: /freedns check domain:<d>
+  if (firstName === 'check') {
+    const domain = first.options?.find(o => o.name === 'domain')?.value;
+    if (!domain) return slash.reply('❓ Please provide a domain.', true);
+    return slash.buildFreeDnsCheck(domain);
+  }
+
+  // subcommand groups
+  const sub = first.options?.[0];
+  if (!sub) return slash.reply(`❓ Usage: \`/freedns ${firstName} <subcommand>\``, true);
+
+  if (firstName === 'server') {
+    if (sub.name === 'status')  return slash.buildFreeDnsServerStatus();
+    if (sub.name === 'changes') return slash.buildFreeDnsChanges();
+  }
+
+  if (firstName === 'domains') {
+    if (sub.name === 'list') {
+      const page = sub.options?.find(o => o.name === 'page')?.value || 1;
+      return slash.buildFreeDnsDomainList(page);
+    }
+    if (sub.name === 'search') {
+      const query = sub.options?.find(o => o.name === 'query')?.value || '';
+      if (!query) return slash.reply('❓ Please provide a search query.', true);
+      return slash.buildFreeDnsSearch(query);
+    }
+    if (sub.name === 'count') return slash.buildFreeDnsCount();
+  }
+
+  if (firstName === 'filter') {
+    if (sub.name === 'list') return slash.buildFreeDnsFilterList();
+    const name = sub.options?.find(o => o.name === 'name')?.value;
+    if (!name) return slash.reply('❓ Please provide a filter name.', true);
+    if (sub.name === 'info')    return slash.buildFreeDnsFilterInfo(name);
+    if (sub.name === 'skip')    return slash.buildFreeDnsFilterSkip(name);
+    if (sub.name === 'blocked') return slash.buildFreeDnsFilterBlocked(name);
+  }
+
+  return slash.reply('❓ Unknown `/freedns` subcommand.', true);
+}
+
+// ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
 module.exports = async (req, res) => {
@@ -349,6 +400,9 @@ module.exports = async (req, res) => {
           else                   response = await handleIncidentList(interaction, cfg);
           break;
         }
+        case 'freedns':
+          response = await handleFreeDns(interaction);
+          break;
         default:
           response = slash.reply('❓ Unknown command.', true);
       }
